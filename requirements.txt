@@ -1,0 +1,21 @@
+# Telegram
+aiogram==3.13.0
+
+# LLM (OpenAI-compatible client for Qwen)
+openai==1.54.0
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+psycopg2-binary==2.9.10
+
+# Validation & config
+pydantic==2.10.0
+pydantic-settings==2.6.1
+
+# Logging
+structlog==24.4.0
+
+# Utils
+python-dotenv==1.0.1
