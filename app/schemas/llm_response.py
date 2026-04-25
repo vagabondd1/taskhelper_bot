@@ -9,6 +9,7 @@ class SessionStateUpdate(BaseModel):
     step_increment: bool = False
     awaiting_hypothesis: bool = False
     switch_mode: Optional[SessionMode] = None
+    plan_steps: Optional[list[str]] = None
 
 
 class LLMResponse(BaseModel):
@@ -20,3 +21,7 @@ class LLMResponse(BaseModel):
     state_update: SessionStateUpdate = Field(default_factory=SessionStateUpdate)
     validation_result: Optional[ValidationResult] = None
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    is_off_topic: bool = Field(
+        default=False,
+        description="True только для new_task, если сообщение не про программирование",
+    )

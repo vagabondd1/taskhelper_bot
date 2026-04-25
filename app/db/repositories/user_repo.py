@@ -47,3 +47,8 @@ class UserRepository:
             user.last_seen_at = datetime.now(timezone.utc)
             await self._session.flush()
         return user
+
+    async def set_awaiting_task(self, user: User, value: bool) -> User:
+        user.awaiting_task_description = value
+        await self._session.flush()
+        return user

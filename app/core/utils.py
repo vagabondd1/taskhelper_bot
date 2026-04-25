@@ -1,4 +1,23 @@
+import unicodedata
+
 from app.core.config import settings
+
+
+def sanitize_text(text: str) -> str:
+    """Нормализует пользовательский текст перед сохранением/обработкой.
+
+    PostgreSQL не принимает NUL-байт в TEXT — отправка такого текста рушит
+    транзакцию. Контрольные символы (кроме \\n и \\t) тоже выкидываем —
+    они ломают логи и JSON-encoding. Unicode приводим к NFC.
+    """
+    if not text:
+        return ""
+    # NUL и прочие control chars (категория Unicode Cc), кроме \n и \t
+    cleaned = "".join(
+        ch for ch in text
+        if ch in ("\n", "\t") or unicodedata.category(ch) != "Cc"
+    )
+    return unicodedata.normalize("NFC", cleaned)
 
 
 def validate_user_input_length(text: str) -> tuple[bool, str | None]:

@@ -5,6 +5,7 @@ from app.core.config import settings
 
 def setup_logging() -> None:
     log_level = getattr(logging, settings.log_level)
+    logging.basicConfig(format="%(message)s", level=log_level)
 
     structlog.configure(
         processors=[
@@ -20,7 +21,7 @@ def setup_logging() -> None:
         ],
         wrapper_class=structlog.make_filtering_bound_logger(log_level),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
 

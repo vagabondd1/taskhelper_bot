@@ -34,6 +34,26 @@ class SessionContext(BaseModel):
     last_assistant_summary: Optional[str] = None
     last_user_message: Optional[str] = None
     awaiting_hypothesis: bool = False
+    plan_steps: Optional[list[str]] = None
+    total_steps: Optional[int] = None
+
+    @property
+    def current_step_title(self) -> Optional[str]:
+        if not self.plan_steps:
+            return None
+        idx = self.current_step_index
+        if 0 <= idx < len(self.plan_steps):
+            return self.plan_steps[idx]
+        return None
+
+    @property
+    def next_step_title(self) -> Optional[str]:
+        if not self.plan_steps:
+            return None
+        idx = self.current_step_index + 1
+        if 0 <= idx < len(self.plan_steps):
+            return self.plan_steps[idx]
+        return None
 
     @classmethod
     def from_db_session(cls, session: Session) -> "SessionContext":
@@ -55,4 +75,6 @@ class SessionContext(BaseModel):
                 session.last_user_message, LAST_USER_MESSAGE_MAX_CHARS
             ),
             awaiting_hypothesis=session.awaiting_hypothesis,
+            plan_steps=session.plan_steps,
+            total_steps=session.total_steps,
         )

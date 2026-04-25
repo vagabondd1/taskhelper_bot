@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     max_user_message_length: int = 4096  # Telegram's hard limit
 
+    # Rate limit (per user, sliding window) — хранится в Redis
+    rate_limit_requests: int = 20
+    rate_limit_window_seconds: int = 60
+
+    # Redis
+    redis_url: str = "redis://redis:6379/0"
+
+    # Cooldown между новыми задачами (new_task) на одного пользователя
+    new_task_cooldown_seconds: int = 10
+
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v: str) -> str:
@@ -57,4 +67,4 @@ class Settings(BaseSettings):
         )
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

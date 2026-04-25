@@ -6,6 +6,8 @@ from app.llm.prompts.guided import (
     NEXT_STEP_PROMPT,
     VALIDATE_IDEA_REQUEST_PROMPT,
     VALIDATE_IDEA_SUBMIT_PROMPT,
+    SHARE_THINKING_REQUEST_PROMPT,
+    SHARE_THINKING_SUBMIT_PROMPT,
     EXPLAIN_PROMPT,
     CODE_HINT_PROMPT,
     THIS_IS_WRONG_PROMPT,
@@ -16,6 +18,25 @@ from app.schemas.session_state import SessionContext
 
 def _na(value: str | None) -> str:
     return value or "n/a"
+
+
+def _plan_str(plan: list[str] | None) -> str:
+    if not plan:
+        return "n/a"
+    return "\n".join(f"{i+1}. {s}" for i, s in enumerate(plan))
+
+
+def _wrap_user(text: str | None) -> str:
+    """Оборачивает untrusted user input в маркеры для prompt-injection защиты.
+
+    Экранируем ВСЕ угловые скобки внутри контента — пользователь не может
+    инжектировать никакие XML/HTML-теги (включая </user_input>), поэтому
+    граница маркера остаётся под нашим контролем.
+    """
+    if not text:
+        return "<user_input></user_input>"
+    safe = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return f"<user_input>{safe}</user_input>"
 
 
 def build_messages(
@@ -41,11 +62,13 @@ def _build_user_content(
 ) -> str:
     match action:
         case ActionType.new_task:
-            return NEW_TASK_PROMPT.format(task_text=user_input or "")
+            return NEW_TASK_PROMPT.format(task_text=_wrap_user(user_input))
 
         case ActionType.guided_hint:
             return HINT_PROMPT.format(
                 task_summary=_na(ctx.task_summary),
+                plan_steps=_plan_str(ctx.plan_steps),
+                current_step_title=_na(ctx.current_step_title),
                 progress_summary=_na(ctx.current_progress_summary),
                 step_index=ctx.current_step_index,
                 last_assistant_summary=_na(ctx.last_assistant_summary),
@@ -54,8 +77,12 @@ def _build_user_content(
         case ActionType.guided_next_step:
             return NEXT_STEP_PROMPT.format(
                 task_summary=_na(ctx.task_summary),
+                plan_steps=_plan_str(ctx.plan_steps),
+                current_step_title=_na(ctx.current_step_title),
+                next_step_title=_na(ctx.next_step_title),
                 progress_summary=_na(ctx.current_progress_summary),
                 step_index=ctx.current_step_index,
+                step_human=ctx.current_step_index + 1,
                 last_assistant_summary=_na(ctx.last_assistant_summary),
             )
 
@@ -65,7 +92,7 @@ def _build_user_content(
                     task_summary=_na(ctx.task_summary),
                     progress_summary=_na(ctx.current_progress_summary),
                     step_index=ctx.current_step_index,
-                    user_hypothesis=user_input,
+                    user_hypothesis=_wrap_user(user_input),
                 )
             return VALIDATE_IDEA_REQUEST_PROMPT.format(
                 task_summary=_na(ctx.task_summary),
@@ -84,9 +111,24 @@ def _build_user_content(
         case ActionType.guided_code_hint:
             return CODE_HINT_PROMPT.format(
                 task_summary=_na(ctx.task_summary),
+                plan_steps=_plan_str(ctx.plan_steps),
+                current_step_title=_na(ctx.current_step_title),
                 progress_summary=_na(ctx.current_progress_summary),
                 step_index=ctx.current_step_index,
                 last_assistant_summary=_na(ctx.last_assistant_summary),
+            )
+
+        case ActionType.guided_share_thinking:
+            if ctx.awaiting_hypothesis and user_input:
+                return SHARE_THINKING_SUBMIT_PROMPT.format(
+                    task_summary=_na(ctx.task_summary),
+                    progress_summary=_na(ctx.current_progress_summary),
+                    step_index=ctx.current_step_index,
+                    user_thinking=_wrap_user(user_input),
+                )
+            return SHARE_THINKING_REQUEST_PROMPT.format(
+                task_summary=_na(ctx.task_summary),
+                progress_summary=_na(ctx.current_progress_summary),
             )
 
         case ActionType.guided_recheck:

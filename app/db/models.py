@@ -38,6 +38,7 @@ class ActionType(str, enum.Enum):
     guided_explain = "guided_explain"
     guided_code_hint = "guided_code_hint"
     guided_recheck = "guided_recheck"
+    guided_share_thinking = "guided_share_thinking"
     full_solution = "full_solution"
     new_task = "new_task"
     mode_switch = "mode_switch"
@@ -56,6 +57,9 @@ class User(Base):
     telegram_user_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False, index=True)
     username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     first_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    awaiting_task_description: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -82,6 +86,8 @@ class Session(Base):
 
     current_step_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     current_progress_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    plan_steps: Mapped[Optional[list[str]]] = mapped_column(JSONB, nullable=True)
+    total_steps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     last_action_type: Mapped[Optional[ActionType]] = mapped_column(Enum(ActionType), nullable=True)
     last_assistant_message_id: Mapped[Optional[int]] = mapped_column(

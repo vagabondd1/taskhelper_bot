@@ -3,6 +3,7 @@ aiogram==3.13.0
 
 # LLM (OpenAI-compatible client for Qwen)
 openai==1.54.0
+httpx==0.27.2
 
 # Database
 sqlalchemy==2.0.36
@@ -11,7 +12,7 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 
 # Validation & config
-pydantic==2.10.0
+pydantic==2.8.2
 pydantic-settings==2.6.1
 
 # Logging
@@ -19,3 +20,6 @@ structlog==24.4.0
 
 # Utils
 python-dotenv==1.0.1
+
+# Redis (rate limiting, cooldowns)
+redis==5.2.1

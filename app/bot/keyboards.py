@@ -1,40 +1,85 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+)
 
-# Callback data константы
-CB_HINT = "action:hint"
-CB_NEXT_STEP = "action:next_step"
-CB_VALIDATE_IDEA = "action:validate_idea"
-CB_EXPLAIN = "action:explain"
-CB_CODE_HINT = "action:code_hint"
-CB_THIS_IS_WRONG = "action:this_is_wrong"
-CB_MODE_GUIDED = "mode:guided"
-CB_MODE_FULL_SOLUTION = "mode:full_solution"
-CB_GET_FULL_SOLUTION = "action:full_solution"
+BTN_HINT = "💡 Подсказка"
+BTN_NEXT_STEP = "➡️ Следующий шаг"
+BTN_VALIDATE_IDEA = "✅ Проверить идею"
+BTN_EXPLAIN = "📖 Объяснить"
+BTN_CODE_HINT = "💻 Подсказка по коду"
+BTN_THIS_IS_WRONG = "❌ Это неверно"
+BTN_SHARE_THINKING = "🧠 Мой контекст"
+
+BTN_MODE_GUIDED = "🧩 Шаг за шагом"
+BTN_MODE_FULL_SOLUTION = "📋 Полное решение"
+
+BTN_DESCRIBE_TASK = "✍️ Описать задачу"
+BTN_EXIT = "🚪 Завершить"
+BTN_CLEAR = "🧹 Очистить чат"
 
 
-def guided_menu() -> InlineKeyboardMarkup:
-    """Фиксированный порядок кнопок guided mode согласно ТЗ."""
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="❌ This is wrong", callback_data=CB_THIS_IS_WRONG)],
-        [InlineKeyboardButton(text="💡 Hint", callback_data=CB_HINT)],
-        [InlineKeyboardButton(text="➡️ Next step", callback_data=CB_NEXT_STEP)],
-        [InlineKeyboardButton(text="✅ Validate my idea", callback_data=CB_VALIDATE_IDEA)],
-        [InlineKeyboardButton(text="📖 Explain", callback_data=CB_EXPLAIN)],
-        [InlineKeyboardButton(text="💻 Code hint", callback_data=CB_CODE_HINT)],
+GUIDED_BUTTONS = {
+    BTN_HINT, BTN_NEXT_STEP, BTN_VALIDATE_IDEA,
+    BTN_EXPLAIN, BTN_CODE_HINT, BTN_THIS_IS_WRONG,
+    BTN_SHARE_THINKING,
+}
+
+MODE_SELECTOR_BUTTONS = {BTN_MODE_GUIDED, BTN_MODE_FULL_SOLUTION}
+
+FULL_SOLUTION_BUTTONS = {BTN_MODE_GUIDED}
+
+START_BUTTONS = {BTN_DESCRIBE_TASK, BTN_CLEAR}
+
+ALL_MENU_BUTTONS = (
+    GUIDED_BUTTONS | MODE_SELECTOR_BUTTONS | FULL_SOLUTION_BUTTONS
+    | START_BUTTONS | {BTN_EXIT}
+)
+
+
+def _kb(rows: list[list[str]]) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=t) for t in row] for row in rows],
+        resize_keyboard=True,
+        is_persistent=True,
+    )
+
+
+def guided_menu() -> ReplyKeyboardMarkup:
+    return _kb([
+        [BTN_HINT, BTN_NEXT_STEP],
+        [BTN_VALIDATE_IDEA, BTN_SHARE_THINKING],
+        [BTN_EXPLAIN, BTN_CODE_HINT],
+        [BTN_THIS_IS_WRONG],
+        [BTN_EXIT],
     ])
 
 
-def mode_selector() -> InlineKeyboardMarkup:
-    """Выбор режима после получения новой задачи."""
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🧩 Guided mode", callback_data=CB_MODE_GUIDED)],
-        [InlineKeyboardButton(text="📋 Full solution", callback_data=CB_MODE_FULL_SOLUTION)],
+def mode_selector() -> ReplyKeyboardMarkup:
+    return _kb([
+        [BTN_MODE_GUIDED, BTN_MODE_FULL_SOLUTION],
+        [BTN_EXIT],
     ])
 
 
-def full_solution_menu() -> InlineKeyboardMarkup:
-    """Кнопки в full solution mode."""
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📋 Get full solution", callback_data=CB_GET_FULL_SOLUTION)],
-        [InlineKeyboardButton(text="🧩 Switch to guided mode", callback_data=CB_MODE_GUIDED)],
+def full_solution_menu() -> ReplyKeyboardMarkup:
+    return _kb([
+        [BTN_MODE_GUIDED],
+        [BTN_EXIT],
     ])
+
+
+def start_menu(has_active_session: bool = False) -> ReplyKeyboardMarkup:
+    rows: list[list[str]] = [[BTN_DESCRIBE_TASK, BTN_CLEAR]]
+    if has_active_session:
+        rows.append([BTN_EXIT])
+    return _kb(rows)
+
+
+def end_of_plan_menu() -> ReplyKeyboardMarkup:
+    return _kb([[BTN_EXIT]])
+
+
+def remove_menu() -> ReplyKeyboardRemove:
+    return ReplyKeyboardRemove()

@@ -6,6 +6,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # entrypoint.sh делает `exec python main.py` → PID 1 становится python.
+      # Без procps в slim-образе это самый дешёвый liveness-check.
+      # Не «health» в полном смысле (не проверяет polling-цикл), но падает,
+      # если python вылетел и контейнер замер на restart-цикле.
+      test: ["CMD-SHELL", "grep -q python /proc/1/comm || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - task_helper_net
 
@@ -23,6 +35,18 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
+      retries: 10
+    networks:
+      - task_helper_net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 10
     networks:
       - task_helper_net

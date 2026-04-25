@@ -1,35 +1,57 @@
 from aiogram.enums import ParseMode
-from aiogram.types import InlineKeyboardMarkup, Message
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    Message,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+)
 
 _TG_MAX_LEN = 4096
+Markup = InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | None
+
+
+def _has_code_block(text: str) -> bool:
+    """Markdown включаем ТОЛЬКО когда в ответе есть fenced-блок кода.
+
+    Текст пользователя содержит звёздочки/подчёркивания/скобки чаще, чем
+    осмысленный markdown — Telegram-парсер падает, sender ретраит plain,
+    каждый ответ стоит двух API-запросов. Раньше parse_mode=MARKDOWN был
+    глобальным, теперь — точечный.
+    """
+    return "```" in text
 
 
 async def send_response(
     message: Message,
     text: str,
-    reply_markup: InlineKeyboardMarkup | None = None,
+    reply_markup: Markup = None,
 ) -> None:
     """Отправляет ответ пользователю.
 
     Если текст длиннее 4096 символов — разбивает на части.
-    Пробует Markdown; при ошибке форматирования отправляет plain text.
+    Markdown применяется только когда есть fenced code (```);
+    при ошибке парсинга — fallback на plain text.
     """
     parts = _split(text)
+    use_markdown = _has_code_block(text)
 
     for i, part in enumerate(parts):
         markup = reply_markup if i == len(parts) - 1 else None
-        await _send_part(message, part, markup)
+        await _send_part(message, part, markup, use_markdown)
 
 
 async def _send_part(
     message: Message,
     text: str,
-    reply_markup: InlineKeyboardMarkup | None,
+    reply_markup: Markup,
+    use_markdown: bool,
 ) -> None:
+    if not use_markdown:
+        await message.answer(text, reply_markup=reply_markup)
+        return
     try:
         await message.answer(text, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
     except Exception:
-        # Если Markdown не парсится (спецсимволы в тексте) — отправляем plain
         await message.answer(text, reply_markup=reply_markup)
 
 

@@ -78,6 +78,7 @@ class BaseService:
         session: Session,
         llm_response: LLMResponse,
         assistant_message_id: int,
+        force_step_increment: bool = False,
     ) -> None:
         from app.db.models import SessionMode as SM
 
@@ -85,6 +86,9 @@ class BaseService:
 
         if upd.task_summary:
             await self._uow.sessions.set_task_summary(session, upd.task_summary)
+
+        if upd.plan_steps:
+            await self._uow.sessions.set_plan(session, upd.plan_steps)
 
         switch_mode = None
         if upd.switch_mode == "guided":
@@ -101,7 +105,7 @@ class BaseService:
             assistant_message_id=assistant_message_id,
             assistant_summary=llm_response.answer_summary,
             progress_summary=upd.progress_summary,
-            step_increment=upd.step_increment,
+            step_increment=force_step_increment,
             awaiting_hypothesis=upd.awaiting_hypothesis,
         )
 

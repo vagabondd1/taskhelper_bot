@@ -5,6 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import ActionType, Session, SessionMode, SessionStatus
 
+# Жёсткие границы для плана решения. SYSTEM_PROMPT просит у LLM 3–7 шагов,
+# но это «надо», а не гарантия — здесь последняя точка обороны перед БД.
+_PLAN_MIN_STEPS = 3
+_PLAN_MAX_STEPS = 7
+_PLAN_STEP_MAX_LEN = 200
+
 
 class SessionRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -83,6 +89,15 @@ class SessionRepository:
         await self._session.flush()
         return session
 
+    async def set_plan(self, session: Session, plan_steps: list[str]) -> Session:
+        cleaned = _sanitize_plan_steps(plan_steps)
+        if cleaned is None:
+            return session
+        session.plan_steps = cleaned
+        session.total_steps = len(cleaned)
+        await self._session.flush()
+        return session
+
     async def switch_mode(self, session: Session, mode: SessionMode) -> Session:
         session.current_mode = mode
         session.awaiting_hypothesis = False
@@ -93,3 +108,35 @@ class SessionRepository:
         session.last_user_message = message
         await self._session.flush()
         return session
+
+
+def _sanitize_plan_steps(raw: list[str] | None) -> list[str] | None:
+    """Чистит plan_steps от LLM. Возвращает None, если список нерабочий
+    (тогда план просто не перезаписываем — лучше старый, чем мусорный).
+
+    Why: LLM иногда возвращает [], дубли, многоабзацные шаги или 1–2 пункта.
+    Раньше всё это уезжало в БД as-is и ломало UI прогресса. Здесь — fail-soft:
+    обрезаем длину, выкидываем пустое/дубли, режем хвост до _PLAN_MAX_STEPS.
+    """
+    if not raw:
+        return None
+    seen: set[str] = set()
+    cleaned: list[str] = []
+    for item in raw:
+        if not isinstance(item, str):
+            continue
+        step = " ".join(item.split()).strip()
+        if not step:
+            continue
+        if len(step) > _PLAN_STEP_MAX_LEN:
+            step = step[: _PLAN_STEP_MAX_LEN - 1].rstrip() + "…"
+        key = step.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(step)
+        if len(cleaned) >= _PLAN_MAX_STEPS:
+            break
+    if len(cleaned) < _PLAN_MIN_STEPS:
+        return None
+    return cleaned
