@@ -40,6 +40,6 @@ class UnitOfWork:
         свежего состояния.
         """
         await self._session.execute(
-            text("SELECT pg_advisory_xact_lock(:ns, :uid)"),
-            {"ns": _LOCK_NAMESPACE_USER, "uid": telegram_user_id},
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:key, :ns))"),
+            {"key": f"user:{telegram_user_id}", "ns": _LOCK_NAMESPACE_USER},
         )

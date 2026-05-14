@@ -71,8 +71,8 @@ class UserLockMiddleware(BaseMiddleware):
         session: AsyncSession | None = data.get("session")
         if user_id is not None and session is not None:
             await session.execute(
-                text("SELECT pg_advisory_xact_lock(:ns, :uid)"),
-                {"ns": _LOCK_NAMESPACE_USER, "uid": user_id},
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:key, :ns))"),
+                {"key": f"user:{user_id}", "ns": _LOCK_NAMESPACE_USER},
             )
         return await handler(event, data)
 
