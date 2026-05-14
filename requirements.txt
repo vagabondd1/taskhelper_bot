@@ -23,3 +23,7 @@ python-dotenv==1.0.1
 
 # Redis (rate limiting, cooldowns)
 redis==5.2.1
+
+# REST API
+fastapi==0.115.4
+uvicorn[standard]==0.32.0

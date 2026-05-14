@@ -21,6 +21,28 @@ services:
     networks:
       - task_helper_net
 
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    # Миграции применяет бот — здесь только uvicorn, чтобы избежать гонки.
+    command: ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/health').status==200 else sys.exit(1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - task_helper_net
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
