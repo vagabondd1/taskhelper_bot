@@ -43,6 +43,19 @@ services:
     networks:
       - task_helper_net
 
+  # Прогон тестов: docker compose run --rm tests
+  # profiles — чтобы сервис не поднимался вместе с обычным `docker compose up`.
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles: ["test"]
+    volumes:
+      - .:/app
+    # Ни БД, ни Redis, ни LLM не нужны: зависимости замоканы, Redis подменён
+    # на fakeredis. Поэтому ни depends_on, ни networks здесь нет.
+    command: ["pytest"]
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped

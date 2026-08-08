@@ -1,0 +1,6 @@
+# Зависимости для прогона тестов. В прод-образ не попадают —
+# Dockerfile ставит только requirements.txt.
+-r requirements.txt
+
+pytest==8.3.3
+pytest-asyncio==0.24.0
