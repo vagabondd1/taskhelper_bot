@@ -1,0 +1,12 @@
+# Отдельный образ для тестов: прод-Dockerfile ставит только runtime-зависимости,
+# а tests/ вообще исключён из контекста через .dockerignore.
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+# Код монтируется томом (сервис tests в docker-compose) — после правки теста
+# пересобирать образ не нужно.
+CMD ["pytest"]
