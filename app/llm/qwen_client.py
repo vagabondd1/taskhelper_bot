@@ -50,8 +50,16 @@ class _CircuitBreaker:
 
     def on_failure(self) -> None:
         self._failures += 1
-        if self._failures >= self._threshold and self._opened_at is None:
-            self._opened_at = time.monotonic()
+        if self._failures < self._threshold:
+            return
+
+        # Отсчёт окна сдвигаем и когда цепь уже открыта: неудачный пробный вызов
+        # обязан закрыть её ещё раз. Иначе _opened_at застывает на первом
+        # открытии, окно считается истёкшим навсегда и allow() пропускает всё.
+
+        was_open = self._opened_at is not None
+        self._opened_at = time.monotonic()
+        if not was_open:
             logger.warning("llm_circuit_opened", failures=self._failures)
 
 
